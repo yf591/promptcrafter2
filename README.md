@@ -53,7 +53,154 @@ promptcrafter2/
 ├── code_overview-en.md        # English code overview
 └── code_overview-jp.md        # Japanese code overview
 ```
+## Technical Architecture
 
+### System Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "User Environment"
+        Browser[Web Browser]
+    end
+    
+    subgraph "Application Layer"
+        Streamlit[Streamlit Server]
+        AppPy[app.py]
+        
+        subgraph "Core Modules"
+            Config[config.py]
+            PromptGen[prompt_generator.py]
+            FavManager[favorites_manager.py]
+            HistManager[history_manager.py]
+        end
+        
+        subgraph "UI Modules"
+            Session[session.py]
+            Sidebar[sidebar.py]
+            MainContent[main_content.py]
+            Search[search.py]
+            Category[category.py]
+            Favorites[favorites.py]
+            History[history.py]
+        end
+    end
+    
+    subgraph "Data Layer"
+        AppSettings[app_settings.json]
+        Categories[categories.json]
+        PromptHistory[prompt_history.json]
+    end
+    
+    subgraph "External Services"
+        HuggingFace[Hugging Face Hub]
+        AIModel[AI Models<br/>PyTorch/Transformers]
+    end
+    
+    Browser -->|HTTP| Streamlit
+    Streamlit --> AppPy
+    AppPy --> Session
+    AppPy --> Sidebar
+    AppPy --> MainContent
+    AppPy --> Search
+    AppPy --> Category
+    AppPy --> Favorites
+    AppPy --> History
+    
+    MainContent --> PromptGen
+    Favorites --> FavManager
+    History --> HistManager
+    Sidebar --> Config
+    
+    Config -.load.-> AppSettings
+    Config -.load.-> Categories
+    HistManager -.read/write.-> PromptHistory
+    FavManager -.read/write.-> Categories
+    
+    PromptGen -.load model.-> HuggingFace
+    PromptGen --> AIModel
+    
+    style Browser fill:#e1f5ff
+    style Streamlit fill:#ff6b6b
+    style AppPy fill:#4ecdc4
+    style AIModel fill:#ffe66d
+    style HuggingFace fill:#ffe66d
+```
+
+### Data Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Streamlit UI
+    participant PG as PromptGenerator
+    participant AI as AI Model
+    participant Data as JSON Data
+    
+    User->>UI: Enter keywords
+    User->>UI: Click generate button
+    UI->>PG: generate_prompt(keywords, settings)
+    
+    alt AI Model Enabled
+        PG->>AI: Text generation request
+        AI-->>PG: AI-generated text
+    else Template Mode
+        PG->>PG: Process template
+    end
+    
+    PG-->>UI: Positive/Negative prompts
+    UI-->>User: Display prompts
+    
+    User->>UI: Add to favorites
+    UI->>Data: Save favorites
+    Data-->>UI: Save complete
+    
+    User->>UI: Reuse from history
+    UI->>Data: Load history
+    Data-->>UI: History data
+    UI-->>User: Restore prompts
+```
+
+### Technology Stack
+
+```mermaid
+graph LR
+    subgraph "Frontend"
+        A[Streamlit 1.52+]
+    end
+    
+    subgraph "Backend"
+        B[Python 3.8+]
+        C[PyTorch 2.9+]
+        D[Transformers 4.57+]
+    end
+    
+    subgraph "Data Management"
+        E[JSON]
+        F[Pyperclip]
+    end
+    
+    subgraph "AI Models"
+        G[MagicPrompt-SD]
+        H[LoRA Models]
+    end
+    
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    D --> G
+    D --> H
+    
+    style A fill:#ff6b6b
+    style B fill:#4ecdc4
+    style C fill:#95e1d3
+    style D fill:#95e1d3
+    style E fill:#ffd93d
+    style F fill:#ffd93d
+    style G fill:#a8e6cf
+    style H fill:#a8e6cf
+```
 ## Getting Started
 
 1. **Clone the Repository:**

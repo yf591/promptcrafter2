@@ -53,7 +53,154 @@ promptcrafter2/
 ├── code_overview-en.md        # 英語版コード概要
 └── code_overview-jp.md        # 日本語版コード概要
 ```
+## 技術アーキテクチャ
 
+### システム構成図
+
+```mermaid
+graph TB
+    subgraph "ユーザー環境"
+        Browser[Webブラウザ]
+    end
+    
+    subgraph "アプリケーション層"
+        Streamlit[Streamlit Server]
+        AppPy[app.py]
+        
+        subgraph "コアモジュール"
+            Config[config.py]
+            PromptGen[prompt_generator.py]
+            FavManager[favorites_manager.py]
+            HistManager[history_manager.py]
+        end
+        
+        subgraph "UIモジュール"
+            Session[session.py]
+            Sidebar[sidebar.py]
+            MainContent[main_content.py]
+            Search[search.py]
+            Category[category.py]
+            Favorites[favorites.py]
+            History[history.py]
+        end
+    end
+    
+    subgraph "データ層"
+        AppSettings[app_settings.json]
+        Categories[categories.json]
+        PromptHistory[prompt_history.json]
+    end
+    
+    subgraph "外部サービス"
+        HuggingFace[Hugging Face Hub]
+        AIModel[AI Models<br/>PyTorch/Transformers]
+    end
+    
+    Browser -->|HTTP| Streamlit
+    Streamlit --> AppPy
+    AppPy --> Session
+    AppPy --> Sidebar
+    AppPy --> MainContent
+    AppPy --> Search
+    AppPy --> Category
+    AppPy --> Favorites
+    AppPy --> History
+    
+    MainContent --> PromptGen
+    Favorites --> FavManager
+    History --> HistManager
+    Sidebar --> Config
+    
+    Config -.読み込み.-> AppSettings
+    Config -.読み込み.-> Categories
+    HistManager -.読み書き.-> PromptHistory
+    FavManager -.読み書き.-> Categories
+    
+    PromptGen -.モデル読み込み.-> HuggingFace
+    PromptGen --> AIModel
+    
+    style Browser fill:#e1f5ff
+    style Streamlit fill:#ff6b6b
+    style AppPy fill:#4ecdc4
+    style AIModel fill:#ffe66d
+    style HuggingFace fill:#ffe66d
+```
+
+### データフロー図
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant UI as Streamlit UI
+    participant PG as PromptGenerator
+    participant AI as AI Model
+    participant Data as JSONデータ
+    
+    User->>UI: キーワード入力
+    User->>UI: プロンプト生成ボタンクリック
+    UI->>PG: generate_prompt(keywords, settings)
+    
+    alt AIモデル使用
+        PG->>AI: テキスト生成リクエスト
+        AI-->>PG: AI生成テキスト
+    else テンプレート使用
+        PG->>PG: テンプレート処理
+    end
+    
+    PG-->>UI: ポジティブ/ネガティブプロンプト
+    UI-->>User: プロンプト表示
+    
+    User->>UI: お気に入りに追加
+    UI->>Data: favorites保存
+    Data-->>UI: 保存完了
+    
+    User->>UI: 履歴から再利用
+    UI->>Data: 履歴読み込み
+    Data-->>UI: 履歴データ
+    UI-->>User: プロンプト復元
+```
+
+### 技術スタック
+
+```mermaid
+graph LR
+    subgraph "フロントエンド"
+        A[Streamlit 1.52+]
+    end
+    
+    subgraph "バックエンド"
+        B[Python 3.8+]
+        C[PyTorch 2.9+]
+        D[Transformers 4.57+]
+    end
+    
+    subgraph "データ管理"
+        E[JSON]
+        F[Pyperclip]
+    end
+    
+    subgraph "AIモデル"
+        G[MagicPrompt-SD]
+        H[LoRA Models]
+    end
+    
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    D --> G
+    D --> H
+    
+    style A fill:#ff6b6b
+    style B fill:#4ecdc4
+    style C fill:#95e1d3
+    style D fill:#95e1d3
+    style E fill:#ffd93d
+    style F fill:#ffd93d
+    style G fill:#a8e6cf
+    style H fill:#a8e6cf
+```
 ## はじめ方
 
 ### 1. リポジトリをクローンします
